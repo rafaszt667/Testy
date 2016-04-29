@@ -25,7 +25,7 @@ float ADCB_gain_error_CH[4] ={1,1,1,1};
 uint8_t ADCA_offset_CH[4] ={0,0,0,0};
 uint8_t ADCB_offset_CH[4] ={0,0,0,0};
 
-void ADC_init(ADC_name_t ADCx, ADC_PRESCALER_t prescaler, ADC_REFSEL_t refference, ADC_conv_mode_t mode, freerun_t free_run, ADC_SWEEP_t sweep)
+void ADC_init(ADC_name_t ADCx, ADC_prescaler_t prescaler, ADC_refference_t refference, ADC_conv_mode_t mode, ADC_freerun_t freerun, ADC_sweep_t sweep)
 {		
 	
 	if(ADCx == A)
@@ -46,10 +46,10 @@ void ADC_init(ADC_name_t ADCx, ADC_PRESCALER_t prescaler, ADC_REFSEL_t refferenc
 			ADCA_refsource_mV = ADCA_ref_source_val_mV;
 		}
 				
-		if(enable_freerun) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
+		if(freerun == ADC_FREERUN_ENABLE) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
 		
 				
-		if(signed_mode)									//if signed mode
+		if(mode == ADC_MODE_SIGNED)						//if signed mode
 		{
 			ADCA.CTRLB |= ADC_CONMODE_bm;				//signed conversion mode
 			ADCA_resolution = 2048;						//change resolution 	 
@@ -81,10 +81,10 @@ void ADC_init(ADC_name_t ADCx, ADC_PRESCALER_t prescaler, ADC_REFSEL_t refferenc
 			ADCB_refsource_mV = ADCB_ref_source_val_mV;
 		}
 			
-		if(enable_freerun) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
+		if(freerun == ADC_FREERUN_ENABLE) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
 			
 			
-		if(signed_mode)									//if signed mode
+		if(mode == ADC_MODE_SIGNED)									//if signed mode
 		{
 			ADCA.CTRLB |= ADC_CONMODE_bm;				//signed conversion mode
 			ADCA_resolution = 2048;						//change resolution
