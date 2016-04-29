@@ -8,6 +8,13 @@
 #ifndef ADC_H_
 #define ADC_H_
 
+/// Wartość napięcia odniesienia dla przetwornika A w mV.
+/// Nie jest konieczna zmiana gdy wybrane zostało źródło wewnętrzene 1V
+#define ADCA_ref_source_val_mV 1000
+
+/// Wartość napięcia odniesienia dla przetwornika B w mV.
+/// Nie jest konieczna zmiana gdy wybrane zostało źródło wewnętrzene 1V
+#define ADCB_ref_source_val_mV 1000
 
 /// Wybór ADC (A lub B)
 typedef enum ADC_name
@@ -62,6 +69,80 @@ typedef enum ADC_sweep
 	ADC_SWEEP_CH0123 = ADC_SWEEP_0123_gc	///< Trigger do kanału 0, 1, 2 i 3
 } ADC_sweep_t;
 
+/// Wybór kanału przetwornika (0, 1, 2, 3)
+typedef enum ADC_channel
+{
+	ADC_CH0,
+	ADC_CH1,
+	ADC_CH2,
+	ADC_CH3
+} ADC_channel_t;
+
+/// Wybór rodzaju wejścia przetwornika.
+typedef enum ADC_inputmode
+{
+	ADC_INPUTMODE_INTERNAL		= ADC_CH_INPUTMODE_INTERNAL_gc,		///< Wejście wewnętrzne - wewnętrzny termometr, wyjście przetwornika...
+	ADC_INPUTMODE_SINGLEENDED	= ADC_CH_INPUTMODE_SINGLEENDED_gc,	///< Wejście pojedyńcze
+	ADC_INPUTMODE_DIFF			= ADC_CH_INPUTMODE_DIFF_gc,			///< Wejście różnicowe
+	ADC_INPUTMODE_DIFFWGAIN		= ADC_CH_INPUTMODE_DIFFWGAIN_gc		///< Wejście różnicowe z wzmocnieniem 
+} ADC_inputmode_t;
+
+/// Podłączenie wejścia nieodwracającego (do jakiego pinu)
+typedef enum ADC_possitive_pin
+{
+	ADC_PIN0	= ADC_CH_MUXPOS_PIN0_gc,	///< pin 0 
+	ADC_PIN1	= ADC_CH_MUXPOS_PIN1_gc,	///< pin 1 
+	ADC_PIN2	= ADC_CH_MUXPOS_PIN2_gc,	///< pin 2 	
+	ADC_PIN3	= ADC_CH_MUXPOS_PIN3_gc,	///< pin 3 
+	ADC_PIN4	= ADC_CH_MUXPOS_PIN4_gc,	///< pin 4
+	ADC_PIN5	= ADC_CH_MUXPOS_PIN5_gc,	///< pin 5
+	ADC_PIN6	= ADC_CH_MUXPOS_PIN6_gc,	///< pin 6
+	ADC_PIN7	= ADC_CH_MUXPOS_PIN7_gc,	///< pin 7
+	ADC_PIN8	= ADC_CH_MUXPOS_PIN8_gc,	///< pin 8
+	ADC_PIN9	= ADC_CH_MUXPOS_PIN9_gc,	///< pin 9
+	ADC_PIN10	= ADC_CH_MUXPOS_PIN10_gc,	///< pin 10
+	ADC_PIN11	= ADC_CH_MUXPOS_PIN11_gc,	///< pin 11
+	ADC_PIN12	= ADC_CH_MUXPOS_PIN12_gc,	///< pin 12
+	ADC_PIN13	= ADC_CH_MUXPOS_PIN13_gc,	///< pin 13
+	ADC_PIN14	= ADC_CH_MUXPOS_PIN14_gc,	///< pin 14
+	ADC_PIN15	= ADC_CH_MUXPOS_PIN15_gc	///< pin 15
+} ADC_possitive_pin_t;
+
+/// Podłączenie wejścia odwracającego (do pinu lub do GND)
+/// Wybór pinu jest zależny od trybu (różnicowy ze wzmocnieniem lub bez)
+/// @see ADC_inputmode_t
+typedef enum ADC_negative_pin
+{
+	ADC_PIN0	= ADC_CH_MUXPOS_PIN0_gc,	///< pin 0 (Tylko dla trybu różnicowego bez wzmocnienia)
+	ADC_PIN1	= ADC_CH_MUXPOS_PIN1_gc,	///< pin 1 (Tylko dla trybu różnicowego bez wzmocnienia)
+	ADC_PIN2	= ADC_CH_MUXPOS_PIN2_gc,	///< pin 2 (Tylko dla trybu różnicowego bez wzmocnienia)
+	ADC_PIN3	= ADC_CH_MUXPOS_PIN3_gc,	///< pin 3 (Tylko dla trybu różnicowego bez wzmocnienia)
+	ADC_PIN4	= ADC_CH_MUXPOS_PIN4_gc,	///< pin 4 (Tylko dla trybu różnicowego ze wzmocnieniem)
+	ADC_PIN5	= ADC_CH_MUXPOS_PIN5_gc,	///< pin 5 (Tylko dla trybu różnicowego ze wzmocnieniem)
+	ADC_PIN6	= ADC_CH_MUXPOS_PIN6_gc,	///< pin 6 (Tylko dla trybu różnicowego ze wzmocnieniem)
+	ADC_PIN7	= ADC_CH_MUXPOS_PIN7_gc,	///< pin 7 (Tylko dla trybu różnicowego ze wzmocnieniem)
+	
+	ADC_GND_DIFF		= ADC_CH_MUXNEG_GND_MODE3_gc,		///< Podłączenie do padu GND dla trybu różnicowego bez wzmocnienia
+	ADC_GND_DIFFWGAIN	= ADC_CH_MUXNEG_GND_MODE4_gc,		///< Podłączenie do padu GND dla trybu różnicowego z wzmocnieniem
+	ADC_INTGND_DIFF		= ADC_CH_MUXNEG_INTGND_MODE3_gc,	///< Podłączenie do wewnętrznego GND dla trybu różnicowego bez wzmocnienia
+	ADC_INTGND_DIFFWGAIN = ADC_CH_MUXNEG_INTGND_MODE4_gc	///< Podłaczenie do wewnętrzengo GND dla trybu różnicowego z wzmocnieniem
+} ADC_negative_pin_t;
+
+///Ustawienie wzmocnienia kanału. Możliwe tylko dla trybu różnicowego ze wzmocnieniem.
+///@see ADC_inputmode_t
+typedef enum ADC_gain
+{
+	ADC_GAIN_1X		= ADC_CH_GAIN_1X_gc,	///< 1x gain
+	ADC_GAIN_2X		= ADC_CH_GAIN_2X_gc,	///< 2x gain
+	ADC_GAIN_3X		= ADC_CH_GAIN_4X_gc,	///< 4x gain
+	ADC_GAIN_8X		= ADC_CH_GAIN_8X_gc,	///< 8x gain
+	ADC_GAIN_16X	= ADC_CH_GAIN_16X_gc,	///< 16x gain
+	ADC_GAIN_32X	= ADC_CH_GAIN_32X_gc,	///< 32x gain
+	ADC_GAIN_64X	= ADC_CH_GAIN_64X_gc,	///< 64x gain
+	ADC_GAIN_DIV2	= ADC_CH_GAIN_DIV2_gc,	///< x/2 gain
+} ADC_gain_t;
+
+
 /** @brief Funkcja inicjalizacji przetwornika ADC.
 	Umożliwia konfigurację przetwornika, ustawienia preskalera, napięcia odniesienia, metody konwersji, 
 	włączenie/wyłączenie trybu freerun i kanałów do których ma być podłączony trigger dla trybu freerun.
@@ -74,4 +155,7 @@ typedef enum ADC_sweep
 	@param sweep		Wybór kanałów do których ma być podłaczony trigger dla trybu freerun 
 */
 void ADC_init(ADC_name_t ADCx, ADC_prescaler_t prescaler, ADC_refference_t refference, ADC_conv_mode_t mode, ADC_freerun_t freerun, ADC_sweep_t sweep);
+
+/**@
+void ADC_CH_init(ADC_name_t ADCx, ADC_channel_t CHx,  ADC_inputmode_t inputmode, ADC_possitive_pin_t possitive_pin, ADC_negative_pin_t negative_pin, ADC_gain_t gain)
 #endif /* ADC_H_ */
