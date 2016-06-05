@@ -11,9 +11,10 @@
 
 #define sampling_period_us 100
 
-uint8_t signal[1000];
 
-uint16_t calc_sin(uint16_t freq_mHz, uint16_t max, uint16_t min);
+
+void signal_param(uint16_t freq_mHz, uint16_t max_mV, uint16_t min_mV, uint16_t N);
+uint16_t sinus_sample(uint16_t sample);
 uint16_t calc_triangle(uint16_t freq_mHz, uint16_t max, uint16_t min);
 uint16_t calc_sowtooth(uint16_t freq_mHz, uint16_t max, uint16_t min);
 

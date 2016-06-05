@@ -10,24 +10,69 @@
 
 
 
+uint16_t ADCx_refsource_mV[2];		///<Aktualne napięcie referencyjne A (0) - ADCA B (1) -ADCB 
+uint16_t ADCx_resolution[2];		///<Aktualna rozdzielczość ADC, zależy od mode w funkcji ADC_init. A (0) - ADCA B (1) -ADCB 
+uint32_t ADCx_delta_mV[2] = {0,0};	///<Aktualna deltaV (wzor w dokumentacji) zależy od rozdzielczości. A (0) - ADCA B (1) -ADCB 
 
-uint16_t ADCA_refsource_mV, ADCB_refsource_mV;
+float ADCx_CHx_full_factor[2][4];				///<Aktualny współczynnik obliczony ze wszystkich powyższych stałych. 
+												///<Pierwszy wymiar - A lub B (wybór przetwornika), drugi wymiar - ADC_CH0 ... ADC_CH3 (kanał przetwornika.
+float ADCx_CHx_gain_error[2][4] = {{1,1,1,1},	///<Aktualny błąd wzmocnienia.
+								  {1,1,1,1}};
+									  
+uint8_t ADCx_CHx_offset[2][4] ={0,0,0,0};		///<Aktualny offset kanału. 
 
-uint16_t ADCA_resolution=4096 , ADCB_resolution = 4096;
-uint32_t deltamV_A=0, deltamV_B=0;
-
-float ADCA_full_factor_CH[4];
-float ADCB_full_factor_CH[4];
-
-float ADCA_gain_error_CH[4] ={1,1,1,1};
-float ADCB_gain_error_CH[4] ={1,1,1,1};
-
-uint8_t ADCA_offset_CH[4] ={0,0,0,0};
-uint8_t ADCB_offset_CH[4] ={0,0,0,0};
-
-void ADC_init(ADC_name_t ADCx, ADC_prescaler_t prescaler, ADC_refference_t refference, ADC_conv_mode_t mode, ADC_freerun_t freerun, ADC_sweep_t sweep)
+void ADC_init(ADC_name_t adc_name, ADC_prescaler_t prescaler, ADC_refference_t refference, ADC_conv_mode_t mode, ADC_freerun_t freerun, ADC_sweep_t sweep)
 {		
+	ADC_t * ADCx;	///< Wskaźnik na odpowiedni ADC
 	
+	if(adc_name == A)
+		ADCx = &ADCA;
+	else 
+		ADCx = &ADCB;
+		
+		
+	ADCx->PRESCALER = prescaler;		//ustawienie preskalera
+	
+	if(refference == ADC_REF_INT1V)		//ustawienie napięcia referencyjnego
+	{
+		ADCx->REFCTRL = ADC_REF_INT1V | 
+						ADC_CH_MUXINT_BANDGAP_gc;	//ustaw napięcie referencyjnego 1V i włącz BANDGAP dla wewnętrznego źródła 1V
+	}
+	else 
+		ADCx->REFCTRL = refference;
+		
+	ADCx_refsource_mV[A] = ADCA_ref_source_val_mV;	
+	ADCx_refsource_mV[B] = ADCB_ref_source_val_mV;
+	
+	
+	if(freerun == ADC_FREERUN_ENABLE)		//ustawienie trybu freerun
+		ADCx->CTRLB |= ADC_FREERUN_bm;
+	else
+		ADCx->CTRLB &= ~ADC_FREERUN_bm;
+		
+		
+	if(mode == ADC_MODE_SIGNED)				//ustawienie trybu pomiaru
+	{
+		ADCx->CTRLB |= ADC_CONMODE_bm;		
+		ADCx_resolution[adc_name] = 2048;	//dla trybu signed rozdzielczosć wynosi 2048
+		ADCx_delta_mV[adc_name] = 0;
+	}
+	else 
+	{
+		ADCx->CTRLB &= ~ADC_CONMODE_bm;
+		ADCx_resolution[adc_name] = 4096;							//dla trybu unsigned rozdzielczosc 4096
+		ADCx_delta_mV[adc_name] = ADCx_refsource_mV[adc_name]*50;	//delta dla unsigned wynosi 5% napięcia referencyjnego (dokumentacja)
+	}
+	
+	ADCx->EVCTRL = sweep;					//włączenie triggera dla wybranych kanałów  ADC (dla freerun)
+	
+	ADCA.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCACAL0);	//czytanie z flasha i zapisywanie do rejestru bajtów kalibracyjnych 
+	ADCA.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCACAL1);
+	
+	ADCB.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCACAL0);	
+	ADCB.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCACAL1);
+	
+		/*
 	if(ADCx == A)
 	{	
 		ADCA.PRESCALER = prescaler;						//ADC prescaler
@@ -96,16 +141,39 @@ void ADC_init(ADC_name_t ADCx, ADC_prescaler_t prescaler, ADC_refference_t reffe
 			
 		ADCB.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCBCAL0);	//Read production callibration row
 		ADCB.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCBCAL1);	
-	}
+	}*/
 }
 
-void ADC_CH_init(ADC_name_t ADCx, ADC_channel_t CHx,  ADC_CH_INPUTMODE_t inputmode, ADC_CH_MUXPOS_t possitive_pin, ADC_CH_MUXNEG_t negative_pin, ADC_CH_GAIN_t gain)
+void ADC_CH_init(ADC_name_t adc_name, ADC_channel_t ch_number,  ADC_inputmode_t inputmode, ADC_possitive_pin_t possitive_pin, ADC_negative_pin_t negative_pin, ADC_gain_t gain)
 {
-	float ADC_gain=1;
-	ADC_CH_t * ADCx_CHx;
+	uint8_t ADC_gain = 1;	///<Wzmocnienie dla trybu różnicowe z wzmocnieniem
+	ADC_t * ADCx;			///<Wskaźnik na aktualny ADC
+	ADC_CH_t * ADCx_CHx;	///<Wskaźnik na aktualny kanał
 	
-	if(inputmode == ADC_CH_INPUTMODE_DIFFWGAIN_gc)
-		switch(gain)
+	if(adc_name == A)	//Przypisanie adresu ADC
+		ADCx = &ADCA;
+	else 
+		ADCx = &ADCB;
+	
+	switch(ch_number)	//Przypisanie adresu kanału
+	{
+		case ADC_CH0:
+			ADCx_CHx = &ADCx->CH0;
+			break;
+		case ADC_CH1:
+			ADCx_CHx = &ADCx->CH1;
+			break;
+		case ADC_CH2:
+			ADCx_CHx = &ADCx->CH2;
+			break;
+		case ADC_CH3:
+			ADCx_CHx = &ADCx->CH3;
+			break;
+	}
+
+	if(inputmode == ADC_INPUTMODE_DIFFWGAIN)	//Ustawienie wzmocnienia dla kanału jeśli tryb różnicowy z wzmocnieniem
+	{
+			switch(gain)
 		{
 			case ADC_CH_GAIN_2X_gc:
 				ADC_gain = 2;
@@ -126,175 +194,126 @@ void ADC_CH_init(ADC_name_t ADCx, ADC_channel_t CHx,  ADC_CH_INPUTMODE_t inputmo
 				ADC_gain = 64;
 				break;
 			case ADC_CH_GAIN_DIV2_gc:
-				ADC_gain = 0.5;
+				ADC_gain = 0;
 				break;
 			default:
 				ADC_gain = 1;
 				break;
 		}
-					
-	if(ADCx == A)
-	{
-		switch(CHx)
-		{
-			case CH0:
-				ADCx_CHx = &ADCA.CH0;
-				break;
-			case CH1:
-				ADCx_CHx = &ADCA.CH1;
-				break;
-			case CH2:
-				ADCx_CHx = &ADCA.CH2;
-				break;
-			case CH3:
-				ADCx_CHx = &ADCA.CH3;
-				break;	
-			default:
-				return;		
-		}
-			ADCA_full_factor_CH[CHx] = (float)ADCA_refsource_mV/(ADCA_resolution*ADC_gain);
-	}
-	else 
-	{
-		switch(CHx)
-		{
-			case CH0:
-				ADCx_CHx = &ADCB.CH0;
-				break;
-			case CH1:
-				ADCx_CHx = &ADCB.CH1;
-				break;
-			case CH2:
-				ADCx_CHx = &ADCB.CH2;
-				break;
-			case CH3:
-				ADCx_CHx = &ADCB.CH3;
-				break;
-			default:
-				return;
-		}
-		if(!ADC_gain)
-			ADCB_full_factor_CH[CHx] = (ADCB_refsource_mV/ADCB_resolution) * 2;
-		else
-			ADCB_full_factor_CH[CHx] = ADCB_refsource_mV/(ADCB_resolution*ADC_gain);
 	}
 	
-	ADCx_CHx->CTRL = inputmode;							//diff mode
-	ADCx_CHx->MUXCTRL =	possitive_pin | negative_pin ;	//Positive and negative input pin
+	//Obliczenie współczynnika dla danego kanału przetwornika. 
+	//jeśłi gain == 0 to znaczy że wynosi 0.5
+	if(ADC_gain == 0)
+		ADCx_CHx_full_factor[adc_name][ch_number] = ((float)ADCx_refsource_mV[adc_name]/ADCx_resolution[adc_name]) * 2;
+	else
+		ADCx_CHx_full_factor[adc_name][ch_number] = (float)ADCx_refsource_mV[adc_name]/(ADCx_resolution[adc_name]*ADC_gain);	
+			
+	ADCx_CHx->CTRL = inputmode;							//Ustawienie trybu pomiaru
+	ADCx_CHx->MUXCTRL =	possitive_pin | negative_pin ;	//Ustawienie podłączonych pinów.
+
 }
 
-int16_t ADCA_result_mV(ADC_channel_t CHx)
+int16_t ADCA_result_mV(ADC_channel_t ch_number)
 {
 	int16_t result=0;
 	
-	switch(CHx)
+	switch(ch_number)
 	{
-		case CH0:
+		case ADC_CH0:
 			result = ADCA.CH0RES;
 			break;
-		case CH1:
+		case ADC_CH1:
 			result = ADCA.CH1RES;
 			break;
-		case CH2:
+		case ADC_CH2:
 			result = ADCA.CH2RES;
 			break;
-		case CH3:
+		case ADC_CH3:
 			result = ADCA.CH3RES;
 			break;
 	}
-	
-	return (((int32_t) result * ADCA_full_factor_CH[CHx]) - deltamV_A - ADCA_offset_CH[CHx]) * ADCA_gain_error_CH[CHx] ;
+
+	return (((int32_t) result * ADCx_CHx_full_factor[A][ch_number]) - ADCx_delta_mV[A] - ADCx_CHx_offset[A][ch_number]) * ADCx_CHx_gain_error[A][ch_number] ;
 }
 
-int16_t ADCB_result_mV(ADC_channel_t CHx)
+int16_t ADCB_result_mV(ADC_channel_t ch_number)
 {
 	int16_t result=0;
 	
-	switch(CHx)
+	switch(ch_number)
 	{
-		case CH0:
+		case ADC_CH0:
 			result = ADCB.CH0RES;
 			break;
-		case CH1:
+		case ADC_CH1:
 			result = ADCB.CH1RES;
 			break;
-		case CH2:
+		case ADC_CH2:
 			result = ADCB.CH2RES;
 			break;
-		case CH3:
+		case ADC_CH3:
 			result = ADCB.CH3RES;
 			break;
 	}
 	
-	return (((int32_t) result * ADCB_full_factor_CH[CHx]) - deltamV_B - ADCB_offset_CH[CHx]) * ADCB_gain_error_CH[CHx] ;
+	return (((int32_t) result * ADCx_CHx_full_factor[B][ch_number]) - ADCx_delta_mV[B] - ADCx_CHx_offset[B][ch_number]) * ADCx_CHx_gain_error[B][ch_number] ;
 }
-void ADC_enable(ADC_name_t ADCx)
+void ADC_enable(ADC_name_t adc_name)
 {
-	if(ADCx == A)	ADCA.CTRLA = ADC_ENABLE_bm;
+	if(adc_name == A)	ADCA.CTRLA = ADC_ENABLE_bm;
 	else			ADCB.CTRLA = ADC_ENABLE_bm;
 }
 
-void ADC_disable(ADC_name_t ADCx)
+void ADC_disable(ADC_name_t adc_name)
 {
-	if(ADCx == A)	ADCA.CTRLA &= ~ADC_ENABLE_bm;
+	if(adc_name == A)	ADCA.CTRLA &= ~ADC_ENABLE_bm;
 	else			ADCB.CTRLA &= ~ADC_ENABLE_bm;
 }
 
-void ADC_set_offset(ADC_name_t ADCx, ADC_channel_t CHx, uint8_t offset_mv)
+void ADC_set_offset(ADC_name_t adc_name, ADC_channel_t ch_number, uint8_t offset_mv)
 {
-	if(ADCx == A)
-		ADCA_offset_CH[CHx] = offset_mv;
+	if(adc_name == A)
+		ADCx_CHx_offset[A][ch_number] = offset_mv;
 	else
-		ADCB_offset_CH[CHx] = offset_mv;
+		ADCx_CHx_offset[B][ch_number] = offset_mv;
 }
-void ADC_set_gain_error(ADC_name_t ADCx, ADC_channel_t CHx, float gainerr_factor)
+void ADC_set_gain_error(ADC_name_t adc_name, ADC_channel_t ch_number, float gainerr_factor)
 {
-	if(ADCx == A)
-		ADCA_gain_error_CH[CHx] = gainerr_factor;
+	if(adc_name == A)
+		ADCx_CHx_gain_error[A][ch_number] = gainerr_factor;
 	else 
-		ADCB_gain_error_CH[CHx] = gainerr_factor;
+		ADCx_CHx_gain_error[B][ch_number] = gainerr_factor;
 }
-void ADC_auto_offset(ADC_name_t ADCx, ADC_channel_t CHx)
+void ADC_auto_offset(ADC_name_t ADC_name, ADC_channel_t ch_number)
 {
-	int16_t result =0;
+	int16_t result = 0;
+	ADC_t * ADCx;
 	
-	if(ADCx == A)
+	if (ADC_name == A)
+		ADCx = &ADCA;
+	else 
+		ADCx = &ADCB;
+		
+	switch(ch_number)
 	{
-		switch(CHx)
-		{
-			case CH0:
-			result = ADCA.CH0RES;
-			break;
-			case CH1:
-			result = ADCA.CH1RES;
-			break;
-			case CH2:
-			result = ADCA.CH2RES;
-			break;
-			case CH3:
-			result = ADCA.CH3RES;
-			break;
-		}
-		ADCA_offset_CH[CHx] = ((int32_t)result * ADCA_full_factor_CH[CHx]) -deltamV_A;
+		case ADC_CH0:
+		result = ADCx->CH0RES;
+		break;
+		case ADC_CH1:
+		result = ADCx->CH1RES;
+		break;
+		case ADC_CH2:
+		result = ADCx->CH2RES;
+		break;
+		case ADC_CH3:
+		result = ADCx->CH3RES;
+		break;
 	}
-	else
-	{
-		switch(CHx)
-		{
-			case CH0:
-			result = ADCB.CH0RES;
-			break;
-			case CH1:
-			result = ADCB.CH1RES;
-			break;
-			case CH2:
-			result = ADCB.CH2RES;
-			break;
-			case CH3:
-			result = ADCB.CH3RES;
-			break;
-		}
-		ADCB_offset_CH[CHx] = ((int32_t)result * ADCB_full_factor_CH[CHx]) -deltamV_B;
-	}
+	ADCx_CHx_offset[ADC_name][ch_number] = ((int32_t)result * ADCx_CHx_full_factor[ADC_name][ch_number]) - ADCx_delta_mV[ADC_name];
 }
 
+inline void ADC_set_full_factor(ADC_name_t adc_name, ADC_CH_t ch_number)
+{
+	return;
+}

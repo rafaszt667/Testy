@@ -86,5 +86,9 @@
 #define KPIN_bm(x)	PIN##x##_bm
 /****************************************************/
 
-
+typedef enum bool
+{
+	FALSE = 0,
+	TRUE = 1
+} bool_t;
 #endif /* MAKROS_AND_UC_CONFIG_H_ */
