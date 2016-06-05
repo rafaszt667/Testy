@@ -29,7 +29,8 @@
 #define sw1pin 2
 #define sw1port D
 
-
+#define div 1000
+#define divcca 32000000/64/div
 
 void OSC_init(void);
 void TC0_init(void);
@@ -38,7 +39,8 @@ void TC0_init(void);
 volatile uint8_t flag=0;
 int16_t adc_result=0;
 uint16_t N;
-
+		uint16_t i = 0;
+//uint16_t div;
 int main(void)
 {
 	
@@ -61,27 +63,26 @@ int main(void)
 
 	uint16_t actual=300;
 	
-
+	signal_param(10000,900,100);
 	
-	
+	//div = (32000000/64)/signal_setings.fn; //obliczanie dzielnika dodatkowego dla timera aby uzyskać odpowiednią czestotliwość probkowania w zależnosci od częstotliwości sygnału i liczby próbek.
 //	actual = ADCA_result_mV(CH0);
 	
 	//PID(200,actual);
-		uint16_t i =0 ;
+
+		
     while (1) 
     {
-		lcd_locate(0,0);
-		lcd_int(actual);
+
+			
+
 		
 		if(flag)
-		{
-			actual = ADCA_result_mV(ADC_CH0);
-			DAC_CH0_mV(500);
+		{		
+
+
+
 			
-	//		DAC_CH0_mV(signal[i]);
-			
-			if(++i > 999)
-				i=0;
 		flag =0;
 		}
 	
@@ -93,9 +94,13 @@ ISR(TCC0_CCA_vect)
 {
 	
 	
-	TCC0.CCA += 31250/5;
-	flag=1;
-	TGL(led);
+	TCC0.CCA += divcca;
+	
+	DAC_CH0_mV(sowtooth_sample(i));
+	
+	++i;
+	if(i == signal_setings.N)
+		i=0;
 	
 }
 
@@ -119,8 +124,8 @@ void TC0_init(void)
 	
 	TCC0.CTRLB = TC_WGMODE_NORMAL_gc;
 	TCC0.CTRLFCLR = TC0_DIR_bm;
-	TCC0.CCA =	31250/5;
-	TCC0.CTRLA = TC_CLKSEL_DIV1024_gc;
+	TCC0.CCA =	divcca;
+	TCC0.CTRLA = TC_CLKSEL_DIV64_gc;
 	
 }
 
