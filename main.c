@@ -63,7 +63,7 @@ int main(void)
 
 	uint16_t actual=300;
 	
-	signal_param(10000,900,100);
+	signal_param(10,900,100);
 	
 	//div = (32000000/64)/signal_setings.fn; //obliczanie dzielnika dodatkowego dla timera aby uzyskać odpowiednią czestotliwość probkowania w zależnosci od częstotliwości sygnału i liczby próbek.
 //	actual = ADCA_result_mV(CH0);
@@ -96,8 +96,9 @@ ISR(TCC0_CCA_vect)
 	
 	TCC0.CCA += divcca;
 	
-	DAC_CH0_mV(sowtooth_sample(i));
-	
+	//DAC_CH0_mV(sowtooth_sample(i));
+	//DAC_CH0_mV(triangle_sample(i));
+	DAC_CH0_mV(sinus_sample(i));
 	++i;
 	if(i == signal_setings.N)
 		i=0;
