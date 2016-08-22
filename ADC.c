@@ -25,7 +25,7 @@ void ADC_init(ADC_name_t adc_name, ADC_prescaler_t prescaler, ADC_refference_t r
 {		
 	ADC_t * ADCx;	///< Wskaźnik na odpowiedni ADC
 	
-	if(adc_name == A)
+	if(adc_name == ADC_A)
 		ADCx = &ADCA;
 	else 
 		ADCx = &ADCB;
@@ -41,8 +41,8 @@ void ADC_init(ADC_name_t adc_name, ADC_prescaler_t prescaler, ADC_refference_t r
 	else 
 		ADCx->REFCTRL = refference;
 		
-	ADCx_refsource_mV[A] = ADCA_ref_source_val_mV;	
-	ADCx_refsource_mV[B] = ADCB_ref_source_val_mV;
+	ADCx_refsource_mV[ADC_A] = ADCA_ref_source_val_mV;	
+	ADCx_refsource_mV[ADC_B] = ADCB_ref_source_val_mV;
 	
 	
 	if(freerun == ADC_FREERUN_ENABLE)		//ustawienie trybu freerun
@@ -72,76 +72,7 @@ void ADC_init(ADC_name_t adc_name, ADC_prescaler_t prescaler, ADC_refference_t r
 	ADCB.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCACAL0);	
 	ADCB.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCACAL1);
 	
-		/*
-	if(ADCx == A)
-	{	
-		ADCA.PRESCALER = prescaler;						//ADC prescaler
 		
-		
-		if(refference == ADC_REFSEL_INT1V_gc)			//if refference = 1V 
-		{	
-			ADCA.REFCTRL =	ADC_REFSEL_INT1V_gc |		//ADC reference
-			ADC_CH_MUXINT_BANDGAP_gc;					//Enable bandgap
-			
-			ADCA_refsource_mV = 1000;					//refference source voltage in mV used to convert bit result to mV
-		}
-		else 
-		{
-			ADCA.REFCTRL = refference;
-			ADCA_refsource_mV = ADCA_ref_source_val_mV;
-		}
-				
-		if(freerun == ADC_FREERUN_ENABLE) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
-		
-				
-		if(mode == ADC_MODE_SIGNED)						//if signed mode
-		{
-			ADCA.CTRLB |= ADC_CONMODE_bm;				//signed conversion mode
-			ADCA_resolution = 2048;						//change resolution 	 
-		}
-		else 
-			deltamV_A = ADCA_refsource_mV*50;			//to unsigned mode use delta V
-			
-		ADCA.EVCTRL = sweep;							//Freerun trigger for declareted channels
-		
-		ADCA.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCACAL0);	//Read production callibration row
-		ADCA.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCACAL1);
-		
-	}
-	else
-	{	
-		ADCB.PRESCALER = prescaler;						//ADC prescaler
-			
-			
-		if(refference == ADC_REFSEL_INT1V_gc)			//if refference = 1V
-		{
-			ADCB.REFCTRL =	ADC_REFSEL_INT1V_gc |		//ADC reference
-			ADC_CH_MUXINT_BANDGAP_gc;					//Enable bandgap
-				
-			ADCA_refsource_mV = 1000;					//refference source voltage in mV used to convert bit result to mV
-		}
-		else
-		{
-			ADCB.REFCTRL = refference;
-			ADCB_refsource_mV = ADCB_ref_source_val_mV;
-		}
-			
-		if(freerun == ADC_FREERUN_ENABLE) ADCA.CTRLB = ADC_FREERUN_bm;	//Freerun mode
-			
-			
-		if(mode == ADC_MODE_SIGNED)									//if signed mode
-		{
-			ADCA.CTRLB |= ADC_CONMODE_bm;				//signed conversion mode
-			ADCA_resolution = 2048;						//change resolution
-		}
-		else
-		deltamV_A = ADCA_refsource_mV*50;			//to unsigned mode use delta V
-			
-		ADCB.EVCTRL = sweep;							//Freerun trigger for declareted channels
-			
-		ADCB.CALL = ReadCalibrationByte(PRODSIGNATURES_ADCBCAL0);	//Read production callibration row
-		ADCB.CALH = ReadCalibrationByte(PRODSIGNATURES_ADCBCAL1);	
-	}*/
 }
 
 void ADC_CH_init(ADC_name_t adc_name, ADC_channel_t ch_number,  ADC_inputmode_t inputmode, ADC_possitive_pin_t possitive_pin, ADC_negative_pin_t negative_pin, ADC_gain_t gain)
@@ -150,7 +81,7 @@ void ADC_CH_init(ADC_name_t adc_name, ADC_channel_t ch_number,  ADC_inputmode_t 
 	ADC_t * ADCx;			///<Wskaźnik na aktualny ADC
 	ADC_CH_t * ADCx_CHx;	///<Wskaźnik na aktualny kanał
 	
-	if(adc_name == A)	//Przypisanie adresu ADC
+	if(adc_name == ADC_A)	//Przypisanie adresu ADC
 		ADCx = &ADCA;
 	else 
 		ADCx = &ADCB;
@@ -234,7 +165,7 @@ int16_t ADCA_result_mV(ADC_channel_t ch_number)
 			break;
 	}
 
-	return (((int32_t) result * ADCx_CHx_full_factor[A][ch_number]) - ADCx_delta_mV[A] - ADCx_CHx_offset[A][ch_number]) * ADCx_CHx_gain_error[A][ch_number] ;
+	return (((int32_t) result * ADCx_CHx_full_factor[ADC_A][ch_number]) - ADCx_delta_mV[ADC_A] - ADCx_CHx_offset[ADC_A][ch_number]) * ADCx_CHx_gain_error[ADC_A][ch_number] ;
 }
 
 int16_t ADCB_result_mV(ADC_channel_t ch_number)
@@ -257,40 +188,40 @@ int16_t ADCB_result_mV(ADC_channel_t ch_number)
 			break;
 	}
 	
-	return (((int32_t) result * ADCx_CHx_full_factor[B][ch_number]) - ADCx_delta_mV[B] - ADCx_CHx_offset[B][ch_number]) * ADCx_CHx_gain_error[B][ch_number] ;
+	return (((int32_t) result * ADCx_CHx_full_factor[ADC_B][ch_number]) - ADCx_delta_mV[ADC_B] - ADCx_CHx_offset[ADC_B][ch_number]) * ADCx_CHx_gain_error[ADC_B][ch_number] ;
 }
 void ADC_enable(ADC_name_t adc_name)
 {
-	if(adc_name == A)	ADCA.CTRLA = ADC_ENABLE_bm;
+	if(adc_name == ADC_A)	ADCA.CTRLA = ADC_ENABLE_bm;
 	else			ADCB.CTRLA = ADC_ENABLE_bm;
 }
 
 void ADC_disable(ADC_name_t adc_name)
 {
-	if(adc_name == A)	ADCA.CTRLA &= ~ADC_ENABLE_bm;
+	if(adc_name == ADC_A)	ADCA.CTRLA &= ~ADC_ENABLE_bm;
 	else			ADCB.CTRLA &= ~ADC_ENABLE_bm;
 }
 
 void ADC_set_offset(ADC_name_t adc_name, ADC_channel_t ch_number, uint8_t offset_mv)
 {
-	if(adc_name == A)
-		ADCx_CHx_offset[A][ch_number] = offset_mv;
+	if(adc_name == ADC_A)
+		ADCx_CHx_offset[ADC_A][ch_number] = offset_mv;
 	else
-		ADCx_CHx_offset[B][ch_number] = offset_mv;
+		ADCx_CHx_offset[ADC_B][ch_number] = offset_mv;
 }
 void ADC_set_gain_error(ADC_name_t adc_name, ADC_channel_t ch_number, float gainerr_factor)
 {
-	if(adc_name == A)
-		ADCx_CHx_gain_error[A][ch_number] = gainerr_factor;
+	if(adc_name == ADC_A)
+		ADCx_CHx_gain_error[ADC_A][ch_number] = gainerr_factor;
 	else 
-		ADCx_CHx_gain_error[B][ch_number] = gainerr_factor;
+		ADCx_CHx_gain_error[ADC_B][ch_number] = gainerr_factor;
 }
 void ADC_auto_offset(ADC_name_t ADC_name, ADC_channel_t ch_number)
 {
 	int16_t result = 0;
 	ADC_t * ADCx;
 	
-	if (ADC_name == A)
+	if (ADC_name == ADC_A)
 		ADCx = &ADCA;
 	else 
 		ADCx = &ADCB;

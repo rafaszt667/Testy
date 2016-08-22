@@ -12,63 +12,43 @@
 #define PI2	6.28
 //#define t sampling_period_us/1000000 //sampling period in seconds
 
+enum {sinus, trian, sowto};
+float parameter[3];	//parame
 
+uint16_t Ampl;	//amplituda przebiegu
+uint16_t DC;	//składowa stała przebiegu
+uint32_t N;		//ilosc próbek na okres
+float t;		//okres próbkowania
 
-
-void signal_param(uint32_t freq_mHz, uint16_t max_mV, uint16_t min_mV)
+uint32_t signal_param(uint32_t freq_mHz, uint16_t max_mV, uint16_t min_mV, uint16_t f_sample_Hz)
 {
-	signal_setings.wt = 2*PI*(float)freq_mHz/1000 * 0.001;
-	signal_setings.N = (1/((float)freq_mHz/1000)) * 1000;
-	signal_setings.A = (max_mV - min_mV)/2;
-	signal_setings.DC = max_mV - signal_setings.A;
+	N	= ((uint32_t)f_sample_Hz * 1000)/freq_mHz;
+	t	= 1/(float)f_sample_Hz;
+	Ampl= (max_mV - min_mV) / 2;	//amplituda przebiegu
+	DC	= min_mV + Ampl;			//stała DC przebiegu
 	
+//parametry do przebiegów (w celu optymalizacji wyliczane wczesniej)
+	parameter[sinus] = 2*PI*((float)freq_mHz/1000) * (1/(float)f_sample_Hz);  //omega t dla sinusa
+	parameter[trian] = 2*(float)Ampl/( t * (N/2 - 1) ) * t ; //parametr do przebiegu trójkątnego, współczynnik a funkcji liniowej do tworzenia przebiegu
+	parameter[sowto] = 2*(float)Ampl/( t * (N-1) ) * t;		//parametr do przebiegu piłokształtnego, współczynnik a funkcji lniowej
+	
+	return N;
 }
 
-uint16_t sinus_sample(uint16_t sample)
-{
-	
-return signal_setings.A * sin(signal_setings.wt * sample) + signal_setings.DC;
-
-
+uint16_t sinus_sample(uint32_t sample)
+{	
+return Ampl * sin(parameter[sinus] * sample) + DC;
 }
 
 uint16_t triangle_sample(uint16_t sample)
 {
-	float t = 0.001;
-	
-	if ((t*sample) <= (t* signal_setings.N/2 ))
-		return (2*signal_setings.A/(t*(signal_setings.N/2 - 1)) * t*sample) + (signal_setings.DC-signal_setings.A);
-		
+	if ((t*sample) <= (t* N/2 ))
+		return parameter[trian] * sample + (DC - Ampl);	//zbocze narazstajace przebiegu trojkatnego (rosnaca funkcja liniowa)	
 	else 
-		return (-2*(int32_t)signal_setings.A/(t* (signal_setings.N/2 -1)) * t*sample) + (signal_setings.DC + (3*signal_setings.A));
-		
-		
-
-	/*uint16_t N = 0;
-	uint16_t DC = 0;
-	uint16_t A = 0;
-	
-	A = (max - min)/2;	
-	DC = max - A;
-	N = samples(freq_mHz); 
-	
-	for(uint8_t i=0; i<N ; i++)
-	{
-		if ((t*i) < (t* N/2))
-		//	signal[i] = 2*A/(t* (N/2 -1)) * t*i + (DC-A);
-		//else
-			//signal[i] = -2*A/(t* (N/2 -1)) * t*i + (DC-3*A);
-	}*/
-
+		return -parameter[trian] * sample + (DC + (3*Ampl));//zbocze opadajace przebiegu trojkatnego (malejaca funkcja liniowa)
 }
 
 uint16_t sowtooth_sample(uint16_t sample)
-{
-	float t = 0.001;
-		
-	return 2*signal_setings.A/(t*(signal_setings.N-1)) * t*(sample-1) + (signal_setings.DC-signal_setings.A);
-}
-uint16_t samples(uint16_t freq_mHz)
-{
-	return 0;//1000000/(freq_mHz*t);
+{		
+	return parameter[sowto] * (sample-1) + (DC-Ampl);
 }
