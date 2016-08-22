@@ -17,8 +17,8 @@
 /// Wybór ADC (A lub B)
 typedef enum ADC_name
 {
-	A = 0,
-	B = 1
+	ADC_A = 0,
+	ADC_B = 1
 }ADC_name_t;
 	
 /// Wybór dzielnika preskalera dla częstotliwości zegara ADC
