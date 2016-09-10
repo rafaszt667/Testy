@@ -12,7 +12,7 @@
 #define ADCA_ref_source_val_mV 1000
 
 /// Wartość napięcia odniesienia dla przetwornika B w mV.
-#define ADCB_ref_source_val_mV 1000
+#define ADCB_ref_source_val_mV 3150
 
 /// Wybór ADC (A lub B)
 typedef enum ADC_name

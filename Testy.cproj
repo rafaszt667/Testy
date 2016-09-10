@@ -169,6 +169,12 @@
     <Compile Include="PID.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="sensor.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="sensor.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="signals.c">
       <SubType>compile</SubType>
     </Compile>

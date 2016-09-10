@@ -61,7 +61,7 @@ void ADC_init(ADC_name_t adc_name, ADC_prescaler_t prescaler, ADC_refference_t r
 	{
 		ADCx->CTRLB &= ~ADC_CONMODE_bm;
 		ADCx_resolution[adc_name] = 4096;							//dla trybu unsigned rozdzielczosc 4096
-		ADCx_delta_mV[adc_name] = ADCx_refsource_mV[adc_name]*50;	//delta dla unsigned wynosi 5% napięcia referencyjnego (dokumentacja)
+		ADCx_delta_mV[adc_name] = ADCx_refsource_mV[adc_name]*0,05;	//delta dla unsigned wynosi 5% napięcia referencyjnego (dokumentacja)
 	}
 	
 	ADCx->EVCTRL = sweep;					//włączenie triggera dla wybranych kanałów  ADC (dla freerun)
@@ -140,7 +140,7 @@ void ADC_CH_init(ADC_name_t adc_name, ADC_channel_t ch_number,  ADC_inputmode_t 
 	else
 		ADCx_CHx_full_factor[adc_name][ch_number] = (float)ADCx_refsource_mV[adc_name]/(ADCx_resolution[adc_name]*ADC_gain);	
 			
-	ADCx_CHx->CTRL = inputmode;							//Ustawienie trybu pomiaru
+	ADCx_CHx->CTRL = gain | inputmode;							//Ustawienie trybu pomiaru
 	ADCx_CHx->MUXCTRL =	possitive_pin | negative_pin ;	//Ustawienie podłączonych pinów.
 
 }

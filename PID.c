@@ -37,7 +37,7 @@ int16_t PID(uint16_t set_point, uint16_t actual_value, uint16_t f_sample_Hz)
 	else if(C> INT_MAX )		
 			C = INT_MAX;
 	
-	signal =  ( Kp *(now_e +  ((1/Ti) * C/1000 )) + (Td * R * 1000) );		//Obliczenie wyjścia regulatora
+	signal =  ( Kp *(now_e));// +  ((1/Ti) * C/1000 )) + (Td * R * 1000) );		//Obliczenie wyjścia regulatora
 	
 	if (signal < 0)		//ograniczenie wyjścia regulatora od dołu
 		signal = 0;

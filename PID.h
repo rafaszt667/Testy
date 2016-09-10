@@ -9,9 +9,9 @@
 #ifndef PID_H_
 #define PID_H_
 
-#define Kp 0.3
-#define Ti 0.004
-#define Td 0.0001
+#define Kp 10
+#define Ti 0.00001
+#define Td 0
 
 int16_t PID(uint16_t set_point, uint16_t actual_value, uint16_t f_sample_Hz);
 
